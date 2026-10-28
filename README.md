@@ -22,6 +22,7 @@ De meegeleverde `data/bronnen.zip` is voldoende. Het dashboard doet geen API-aan
 - `data/bronnen.zip`: oorspronkelijke CO2-data en codeboek, Wereldbankdata en metadata, kaartvlakken en bronverantwoording met SHA256-controlesommen.
 - `documentatie/data_verantwoording.md`: korte verantwoording voor het inleveren.
 - `documentatie/Oefenen_live_coding_case_5.docx`: 32 aangepaste oefeningen, hints, oplossingen en presentatievoorbereiding.
+- `documentatie/Spreektekst_case_5_8_minuten.docx`: spreektekst in de ik-vorm met tijdschema, klikroute en aparte naslag voor vragen.
 - `requirements.txt`: benodigde Python-pakketten. Python 3.12 of 3.13 aanbevolen voor Streamlit Community Cloud.
 
 ## Data opnieuw ophalen
