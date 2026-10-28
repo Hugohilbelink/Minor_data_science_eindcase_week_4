@@ -3,12 +3,11 @@ from pathlib import Path
 import json
 from zipfile import ZipFile
 
-import numpy as np
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 from scipy.stats import linregress, t
 import streamlit as st
+import teksten
 
 # 1 INSTELLINGEN
 st.set_page_config(page_title="CO2 en welvaart", page_icon="🌍", layout="wide")
@@ -29,21 +28,19 @@ def laad_data():
         landen = pd.read_csv(archief.open("worldbank_country_metadata.csv"))
         kaart = json.loads(archief.read("landen.geojson"))
         bronnen = json.loads(archief.read("data_bronnen_case5.json"))
-    # Landcodes zonder waarde en regionale totalen horen niet in de landenanalyse.
-    co2 = co2.dropna(subset=["iso_code"])
-    bbp = bbp.dropna(subset=["iso_code"])
-    landen = landen.loc[~landen["is_aggregate"]].copy()
-    co2 = co2.merge(landen[["iso_code", "region"]], on="iso_code", validate="many_to_one")
-    bbp = bbp.merge(landen[["iso_code"]], on="iso_code", validate="many_to_one")
+    # Gebruik alleen landcodes uit de landenlijst; geen lege codes of regionale totalen.
+    landen = landen[landen["is_aggregate"] == False]
+    co2 = co2[co2["iso_code"].isin(landen["iso_code"])]
+    bbp = bbp[bbp["iso_code"].isin(landen["iso_code"])]
     data = co2.merge(bbp[["iso_code", "year", "gdp_constant_2015_usd"]],
                      on=["iso_code", "year"], how="outer", indicator=True,
                      validate="one_to_one")
     controle = data["_merge"].value_counts().rename_axis("Koppeling").reset_index(name="Rijen")
-    # Vul alleen beschrijvingen aan, nooit de meetwaarden.
-    namen = landen.set_index("iso_code")["country"]
-    regios = landen.set_index("iso_code")["region"]
-    data["country"] = data["country"].fillna(data["iso_code"].map(namen))
-    data["region"] = data["region"].fillna(data["iso_code"].map(regios))
+    # Voeg namen en regio's toe. Alleen een ontbrekende naam wordt aangevuld.
+    landen = landen.rename(columns={"country": "landnaam"})
+    data = data.merge(landen[["iso_code", "landnaam", "region"]], on="iso_code", validate="many_to_one")
+    data["country"] = data["country"].fillna(data["landnaam"])
+    data = data.drop(columns="landnaam")
     for kolom in ["co2", "consumption_co2", "gdp_constant_2015_usd"]:
         data[kolom] = pd.to_numeric(data[kolom], errors="coerce")
     data = data.rename(columns={"gdp_constant_2015_usd": "bbp"})
@@ -53,22 +50,22 @@ def laad_data():
 
 # 3 AFGELEIDE KOLOMMEN EN CLASSIFICATIE
 def vergelijk_jaren(data, startjaar, eindjaar, uitstootkolom="co2"):
-    begin = data.loc[data["year"] == startjaar,
-                     ["iso_code", "country", "region", uitstootkolom, "bbp"]]
-    einde = data.loc[data["year"] == eindjaar, ["iso_code", uitstootkolom, "bbp"]]
+    kolommen = ["iso_code", uitstootkolom, "bbp"]
+    begin = data[data["year"] == startjaar][kolommen]
+    einde = data[data["year"] == eindjaar][kolommen]
     samen = begin.merge(einde, on="iso_code", how="outer", suffixes=("_start", "_eind"),
                         validate="one_to_one")
-    # Landen die alleen in het eindjaar voorkomen houden ook hun naam en regio.
+    # Voeg beschrijvingen toe, ook bij landen met maar één meetjaar.
     beschrijvingen = data[["iso_code", "country", "region"]].drop_duplicates("iso_code")
-    samen = samen.drop(columns=["country", "region"]).merge(
-        beschrijvingen, on="iso_code", validate="one_to_one")
+    samen = samen.merge(beschrijvingen, on="iso_code", validate="one_to_one")
     samen = samen.rename(columns={f"{uitstootkolom}_start": "co2_start",
                                   f"{uitstootkolom}_eind": "co2_eind"})
-    geldig = (samen[["co2_start", "co2_eind", "bbp_start", "bbp_eind"]].notna().all(axis=1)
-              & samen["co2_start"].gt(0) & samen["co2_eind"].ge(0)
-              & samen["bbp_start"].gt(0) & samen["bbp_eind"].gt(0))
-    uitgesloten = samen.loc[~geldig, ["iso_code", "country", "co2_start", "co2_eind", "bbp_start", "bbp_eind"]]
-    samen = samen.loc[geldig].copy()
+    metingen = ["co2_start", "co2_eind", "bbp_start", "bbp_eind"]
+    geldig = samen.dropna(subset=metingen)
+    geldig = geldig[(geldig["co2_start"] > 0) & (geldig["co2_eind"] >= 0)
+                    & (geldig["bbp_start"] > 0) & (geldig["bbp_eind"] > 0)]
+    uitgesloten = samen[~samen["iso_code"].isin(geldig["iso_code"])][["iso_code", "country"] + metingen]
+    samen = geldig.copy()
     samen["bbp_groei"] = (samen["bbp_eind"] / samen["bbp_start"] - 1) * 100
     samen["co2_groei"] = (samen["co2_eind"] / samen["co2_start"] - 1) * 100
     samen["intensiteit_start"] = samen["co2_start"] * 1_000_000_000 / samen["bbp_start"]
@@ -90,17 +87,19 @@ def toon_grafiek(fig):
     st.plotly_chart(fig, width="stretch", config={"displaylogo": False})
 
 
+def puntenwolk(data, y_kolom="co2_groei"):
+    return px.scatter(data, x="bbp_groei", y=y_kolom, color="status",
+                      color_discrete_map=KLEUREN, hover_name="country",
+                      hover_data={"intensiteit_groei": ":.1f"}, labels=teksten.ASSEN)
+
+
 # 5 OPSTARTEN
-st.markdown("""<style>
-.stApp{background:#f5f7fa;color:#173044} [data-testid="stSidebar"]{background:#eaf0f4}
-.block-container{max-width:1450px;padding-top:2.5rem}
-h1,h2,h3{letter-spacing:-.025em} [data-testid="stMetric"]{background:white;border:1px solid #dce4e9;border-radius:12px;padding:16px}
-</style>""", unsafe_allow_html=True)
+st.markdown(teksten.OPMAAK, unsafe_allow_html=True)
 try:
     data, kaart, bronnen, controle = laad_data()
 except (FileNotFoundError, KeyError, ValueError) as fout:
     st.error(f"De lokale data kan niet worden ingelezen: {fout}")
-    st.info("Controleer of data/bronnen.zip naast app.py staat. Herstel de meegeleverde bestanden.")
+    st.info(teksten.INLEES_HULP)
     st.stop()
 
 
@@ -135,7 +134,7 @@ if alleen_groei:
 # 7 HOOFDCONCLUSIE EN KPI S
 st.caption(f"INDIVIDUELE EINDOPDRACHT · {startjaar}–{eindjaar} · {regio}")
 st.title("Wie groeit met minder uitstoot?")
-st.write("Een schonere economie kan toch méér CO₂ uitstoten. Vergelijk daarom de totale uitstoot én de uitstoot per eenheid bbp.")
+st.write(teksten.INLEIDING)
 if selectie.empty:
     st.warning("Geen landen met geldige begin- en eindwaarden binnen deze selectie. Pas de filters aan.")
     st.stop()
@@ -158,7 +157,7 @@ overzicht, verdieping, methode = st.tabs(["Wereldbeeld", "Land en onderbouwing",
 # 8 KAART EN VERGELIJKING
 with overzicht:
     st.subheader("Waar lukt absolute ontkoppeling?")
-    st.write("Bekijk of landen met dezelfde ontwikkeling ruimtelijk bij elkaar liggen. Gebruik de regio- en periodefilters om het patroon te vergelijken.")
+    st.write(teksten.KAART_UITLEG)
     # Een lokale GeoJSON en een lege achtergrond: de kaart vraagt geen externe tegels op.
     achtergrond = pd.DataFrame({"id": [f["id"] for f in kaart["features"]]})
     fig = px.choropleth_map(achtergrond, geojson=kaart, locations="id", color_discrete_sequence=["#e2e7eb"],
@@ -181,9 +180,7 @@ with overzicht:
             st.write(", ".join(zonder_kaart))
 
     st.subheader("Groei is nog geen daling van uitstoot")
-    fig = px.scatter(selectie, x="bbp_groei", y="co2_groei", color="status", color_discrete_map=KLEUREN,
-                      hover_name="country", hover_data={"intensiteit_groei": ":.1f"},
-                      labels={"bbp_groei": "Verandering reëel bbp (%)", "co2_groei": "Verandering totale CO₂ (%)"})
+    fig = puntenwolk(selectie)
     onder = min(0, selectie["bbp_groei"].min(), selectie["co2_groei"].min())
     boven = max(selectie["bbp_groei"].max(), selectie["co2_groei"].max(), 1)
     fig.add_shape(type="line", x0=onder, y0=onder, x1=boven, y1=boven,
@@ -191,8 +188,7 @@ with overzicht:
     fig.add_hline(y=0, line_color="#8798a5")
     fig.add_vline(x=0, line_color="#8798a5")
     toon_grafiek(fig)
-    st.caption("Rechts onder nul: absolute ontkoppeling. Rechts boven nul maar onder de stippellijn y = x: alleen relatieve ontkoppeling. "
-               "Links van nul groeit het bbp niet. Elk punt is één land; assen kunnen een verschillend schaalbereik hebben.")
+    st.caption(teksten.PUNTEN_UITLEG)
 
 
 # 9 LANDVERHAAL EN TIJDLIJN
@@ -203,16 +199,15 @@ with verdieping:
     rij = selectie.loc[selectie["country"] == land].iloc[0]
     st.write(f"**{land}: {rij['status'].lower()}.** Bbp {rij['bbp_groei']:+.1f}%, "
              f"totale CO₂ {rij['co2_groei']:+.1f}% en CO₂ per eenheid bbp {rij['intensiteit_groei']:+.1f}%.")
-    tijdlijn = regiodata.loc[(regiodata["iso_code"] == rij["iso_code"]) &
-                            regiodata["year"].between(startjaar, eindjaar)].copy()
-    # Reindex maakt ontbrekende jaren zichtbaar als onderbreking in de lijn.
-    tijdlijn = tijdlijn.set_index("year").reindex(range(startjaar, eindjaar + 1)).rename_axis("year").reset_index()
+    # Een volledige jaartabel houdt ontbrekende jaren zichtbaar als gaten in de lijnen.
+    jaren = pd.DataFrame({"year": range(startjaar, eindjaar + 1)})
+    landdata = regiodata[regiodata["iso_code"] == rij["iso_code"]]
+    tijdlijn = jaren.merge(landdata, on="year", how="left", validate="one_to_one")
     tijdlijn["Bbp"] = tijdlijn["bbp"] / rij["bbp_start"] * 100
     tijdlijn["Totale CO₂"] = tijdlijn["co2"] / rij["co2_start"] * 100
     tijdlijn["CO₂ per eenheid bbp"] = (tijdlijn["co2"] * 1_000_000_000 / tijdlijn["bbp"]) / rij["intensiteit_start"] * 100
-    lang = tijdlijn.melt(id_vars="year", value_vars=["Bbp", "Totale CO₂", "CO₂ per eenheid bbp"],
-                         var_name="Maatstaf", value_name="Index")
-    fig = px.line(lang, x="year", y="Index", color="Maatstaf", labels={"year": "Jaar"},
+    fig = px.line(tijdlijn, x="year", y=["Bbp", "Totale CO₂", "CO₂ per eenheid bbp"],
+                   labels={"year": "Jaar", "value": "Index", "variable": "Maatstaf"},
                    color_discrete_map={"Bbp": "#3566a3", "Totale CO₂": "#c44b48", "CO₂ per eenheid bbp": "#087f68"})
     fig.update_traces(connectgaps=False)
     fig.add_hline(y=100, line_dash="dot")
@@ -225,12 +220,11 @@ with verdieping:
         st.info(f"Controle voor handel: de consumptiegebaseerde CO₂ verandert voor {land} met {ar['co2_groei']:+.1f}%. "
                 f"Het oordeel wordt dan: {ar['status'].lower()}. Deze maat rekent uitstoot in geïmporteerde producten mee en die in exportproducten niet.")
     else:
-        st.info("Voor dit land ontbreken geldige consumptiegebaseerde eindpunten. Verplaatsing van productie naar het buitenland is hier niet te controleren.")
+        st.info(teksten.HANDEL_ONTBREEKT)
 
     # 10 STATISTISCHE ONDERBOUWING
     st.subheader("Hoe sterk is het verband tussen groei en uitstoot?")
-    st.write("Een eenvoudige regressie vergelijkt bbp-verandering met CO₂-verandering tussen landen in dezelfde selectie. "
-             "Dit toetst samenhang; het verklaart niet waarom landen ontkoppelen.")
+    st.write(teksten.REGRESSIE_UITLEG)
     if aantal >= 5 and selectie["bbp_groei"].nunique() > 1 and selectie["co2_groei"].nunique() > 1:
         model = linregress(selectie["bbp_groei"], selectie["co2_groei"])
         marge = t.ppf(0.975, df=aantal - 2) * model.stderr
@@ -241,21 +235,17 @@ with verdieping:
         st.write(f"10 procentpunt meer bbp-groei hangt samen met **{10 * model.slope:+.1f} procentpunt** CO₂-verandering. "
                  f"Het klassieke 95%-betrouwbaarheidsinterval loopt van {10 * (model.slope - marge):+.1f} tot {10 * (model.slope + marge):+.1f} procentpunt. "
                  f"De tweezijdige p-waarde voor een helling van nul is {model.pvalue:.3g}.")
-        x = np.linspace(selectie["bbp_groei"].min(), selectie["bbp_groei"].max(), 100)
-        fig = px.scatter(selectie, x="bbp_groei", y="co2_groei", hover_name="country", color="status",
-                          color_discrete_map=KLEUREN, labels={"bbp_groei": "Verandering bbp (%)", "co2_groei": "Verandering CO₂ (%)"})
-        fig.add_trace(go.Scatter(x=x, y=model.intercept + model.slope * x, mode="lines", name="Regressielijn", line=dict(color="#173044")))
+        x = [selectie["bbp_groei"].min(), selectie["bbp_groei"].max()]
+        y = [model.intercept + model.slope * waarde for waarde in x]
+        fig = puntenwolk(selectie)
+        fig.add_scatter(x=x, y=y, mode="lines", name="Regressielijn", line=dict(color="#173044"))
         toon_grafiek(fig)
-        st.caption("Elk land weegt even zwaar. Het interval veronderstelt onafhankelijke fouten met constante variantie; landen beïnvloeden elkaar en uitschieters kunnen de uitkomst sturen. "
-                   "Dit is modelonzekerheid, geen meetonzekerheid van CO₂. Vergelijk regio's en andere periodes om de gevoeligheid te onderzoeken.")
+        st.caption(teksten.REGRESSIE_BEPERKING)
     else:
-        st.info("Voor regressie zijn minimaal vijf landen en variatie in beide grootheden nodig. Verruim de selectie.")
+        st.info(teksten.REGRESSIE_TE_WEINIG)
 
     st.subheader("Welke maat is het eerlijkst?")
-    st.write("Voor de klimaatvraag is de verandering in totale CO₂ de hoofdmaat: een lagere intensiteit kan samengaan met meer uitstoot. "
-             "CO₂ per eenheid reëel bbp laat wel zien of productie schoner wordt. Toon beide naast elkaar. "
-             "Territoriale uitstoot mist emissies die via import worden uitbesteed; controleer daarom waar mogelijk ook consumptiegebaseerde uitstoot. "
-             "Absolute ontkoppeling zegt op zichzelf niets over een eerlijke uitstootverdeling of een voldoende snelle daling.")
+    st.write(teksten.OORDEEL)
 
 
 # 11 TABEL EN DATAVERANTWOORDING
@@ -264,26 +254,21 @@ with methode:
     top_aantal = 10
     tabel = selectie.sort_values("co2_groei").head(top_aantal)
     kolommen = ["country", "iso_code", "bbp_groei", "co2_groei", "intensiteit_groei", "status"]
-    st.caption("Tien landen met de sterkste procentuele daling of kleinste stijging van totale CO₂ binnen je selectie.")
+    st.caption(teksten.TABEL_UITLEG)
     st.dataframe(tabel[kolommen].rename(columns={"country": "Land", "iso_code": "ISO", "bbp_groei": "Bbp %",
                  "co2_groei": "CO₂ %", "intensiteit_groei": "CO₂ / bbp %", "status": "Oordeel"}),
                  hide_index=True, width="stretch")
     st.download_button("Download alle geselecteerde landen", selectie[kolommen].to_csv(index=False).encode("utf-8-sig"),
                        "ontkoppeling_selectie.csv", "text/csv")
     st.subheader("Bronnen en keuzes")
-    st.markdown("- **Uitstoot:** [Our World in Data](https://github.com/owid/co2-data), jaarlijkse territoriale CO₂ uit fossiele brandstoffen en industrie; exclusief landgebruik. Eenheid: miljoen ton.\n"
-                "- **Economie:** [Wereldbank NY.GDP.MKTP.KD](https://data.worldbank.org/indicator/NY.GDP.MKTP.KD), totaal bbp in constante dollars van 2015.\n"
-                "- **Kaart:** Natural Earth op schaal 1:110 miljoen, lokaal bewaard; grenzen zijn schematisch.\n"
-                "- **Sleutel:** ISO-code plus jaar. Een landnaam kan verschillen; alleen een landcode koppelen zou alle jaren vermenigvuldigen.\n"
-                "- **Ontbrekende waarden:** geen nul, gemiddelde of interpolatie. Alleen geldige, positieve startwaarden en bbp-eindwaarden; CO₂-eindwaarde mag nul zijn.\n"
-                "- **Definitie:** bbp > 0% en CO₂ < 0% = absoluut; bbp > 0%, CO₂ ≥ 0% en intensiteit < 0% = alleen relatief. Zonder bbp-groei volgt een aparte categorie.")
+    st.markdown(teksten.BRONNEN)
     st.caption(f"Snapshot opgehaald op {bronnen['opgehaald_utc'][:10]}. Wereldbank laatst bijgewerkt: {bronnen['worldbank_metadata']['lastupdated']}. "
                "De vergelijking gebruikt 1960–2024; recentere of oudere bronjaren blijven in het bronarchief beschikbaar.")
-    st.write("De tabel hieronder telt de koppeling van alle land-jaren vóór het analysefilter op 1960–2024. Een gekoppelde rij kan nog ontbrekende meetwaarden bevatten.")
+    st.write(teksten.KOPPELING_UITLEG)
     st.dataframe(controle, hide_index=True, width="stretch")
     with st.expander("Uitgesloten landen en ontbrekende eindpunten in deze regio"):
         st.dataframe(uitgesloten, hide_index=True, width="stretch")
     with st.expander("Toon de onderliggende land-jaren"):
         st.dataframe(regiodata.loc[regiodata["iso_code"].isin(selectie["iso_code"]) &
                                    regiodata["year"].between(startjaar, eindjaar)], hide_index=True, width="stretch")
-    st.caption("De app leest uitsluitend lokale bestanden. Het ophaalscript en de data-verantwoording staan in de repository. Gebouwd met hulp van Codex; de gebruiker moet de code zelfstandig kunnen uitleggen en aanpassen.")
+    st.caption(teksten.SLOT)

@@ -32,6 +32,7 @@ De lokale eindopdrachtmap heeft drie onderdelen:
 | Bestand in dashboard | Waarvoor nodig? | In het Brightspace-pakket? |
 | --- | --- | --- |
 | `app.py` | Dashboard tonen en live code aanpassen tijdens het assessment. | Ja |
+| `teksten.py` | De vaste schermteksten en opmaak laden. Dit bestand hoort bij app.py. | Ja |
 | `data/bronnen.zip` | Lokale data voor het dashboard; niet uitpakken of verwijderen. | Ja |
 | `data_ophalen.py` | Laten zien hoe je de data hebt verzameld. Tijdens het assessment hoef je dit niet uit te voeren. | Ja |
 | `requirements.txt` | Vastleggen welke Python-pakketten nodig zijn om de app te installeren. | Ja |
@@ -43,7 +44,7 @@ De lokale eindopdrachtmap heeft drie onderdelen:
 | `.vscode/launch.json` | De klikbare startinstelling op jouw laptop gebruiken. | Nee, lokaal bewaren |
 | `.git` | De koppeling en versiegeschiedenis met GitHub bewaren. | Nee, lokaal bewaren |
 
-Voor Brightspace gebruik je **`inleveren/Case_5A_Hugo_Hilbelink.zip`** in de bovenliggende eindopdrachtmap. Het bevat alleen de vijf vereiste onderdelen. Je levert de spreektekst en oefeningen niet mee in. Als je code, data of data-verantwoording verandert, moet het inleverpakket opnieuw worden bijgewerkt.
+Voor Brightspace gebruik je **`inleveren/Case_5A_Hugo_Hilbelink.zip`** in de bovenliggende eindopdrachtmap. Het bevat de vijf vereiste onderdelen, verdeeld over zes bestanden: de dashboardcode bestaat uit `app.py` en `teksten.py`. Je levert de spreektekst en oefeningen niet mee in. Als je code, data of data-verantwoording verandert, moet het inleverpakket opnieuw worden bijgewerkt.
 
 Voor de online versie blijven app, data, ophaalscript, verantwoording en requirements in GitHub staan. De online app start automatisch; je lokale VS Code-startinstelling is daarvoor niet nodig.
 
@@ -52,6 +53,7 @@ In de grote schoolmap `Minor Data Science` staat ook `.venv`: dat is de Python-o
 ## Bestanden
 
 - `app.py`: het volledige dashboard met genummerde blokken, van inlezen en samenvoegen tot filters, grafieken en statistiek.
+- `teksten.py`: alleen vaste schermteksten, labels en opmaak. Alle berekeningen, filters en grafieklogica blijven in `app.py`.
 - `data_ophalen.py`: apart ophaalscript met requests en paginering; schrijft een lokale snapshot.
 - `data/bronnen.zip`: oorspronkelijke CO2-data en codeboek, Wereldbankdata en metadata, kaartvlakken en bronverantwoording met SHA256-controlesommen.
 - `documentatie/data_verantwoording.md`: korte verantwoording voor het inleveren.
@@ -69,6 +71,16 @@ python data_ophalen.py --vernieuw
 Het eerste commando bewaart een bestaande snapshot. Het tweede vervangt bewust de snapshot door nieuwe bronversies; uitkomsten kunnen daardoor veranderen. Maak eerst een kopie als je de huidige inzendversie wilt bewaren.
 
 ## Analyse
+
+### De code leren lezen
+
+De code sluit aan op de basis uit Introduction to Python, Intermediate Python, Data Manipulation with pandas, Cleaning Data in Python en de Plotly- en functieonderwerpen in je DataCamp-overzicht. De concrete voorbeelden voor koppelen en filters komen ook uit je werkcolleges.
+
+Begin met **blok 6** (filters) en **blok 7** (KPI's). Daarna lees je **blok 3**: `dropna` sluit ontbrekende meetwaarden uit, gewone vergelijkingen controleren de startwaarden, en nieuwe kolommen berekenen groei en intensiteit. **Blok 2** leest de bestanden en koppelt met `merge`.
+
+`puntenwolk(data, y_kolom)` maakt één puntenwolk; `toon_grafiek(fig)` toont een grafiek met dezelfde opmaak. De tijdlijn gebruikt een jaartabel met een `left` merge en `px.line` met drie kolommen. De regressielijn heeft alleen twee eindpunten nodig. NumPy, `melt` en de keten `set_index → reindex → reset_index` zijn daarvoor niet meer nodig.
+
+De statistische bibliotheekfuncties `linregress` en `t.ppf`, de Streamlit-cache en de kaartinstellingen blijven nodig voor deze opdracht. In het oefendocument staat wat je over de uitkomsten, cache en bronkeuzes moet kunnen uitleggen. De elf genummerde blokken en alle analyse-uitkomsten zijn behouden.
 
 De app koppelt op ISO-landcode **en jaar**, controleert een-op-eenrelaties en sluit regionale totalen uit. Ontbrekende meetwaarden blijven ontbreken. De standaardvergelijking is 2000–2023; het eindjaar is bewust niet het coronajaar 2020. Via de filters zijn andere periodes, regio's en landen te onderzoeken.
 

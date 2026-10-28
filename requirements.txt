@@ -1,6 +1,5 @@
 streamlit==1.64.0
 pandas==3.0.5
-numpy>=2.0,<3
 plotly==7.1.0
 scipy>=1.14,<2
 requests>=2.32,<3
