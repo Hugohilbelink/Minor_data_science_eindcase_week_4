@@ -6,7 +6,11 @@ Individuele eindopdracht IDS 2026–2027 van Hugo Hilbelink. Casus 5, richting A
 
 ## Starten op je eigen laptop
 
-Open een terminal in deze map:
+Op Hugo's laptop kun je in VS Code klikken op **Run → Start Debugging**. Kies **Start dashboard** als er meerdere startinstellingen zijn. Dit werkt met de map `dashboard` of de hoofdmap `Minor Data Science` geopend. De lokale startinstellingen staan in de verborgen map `.vscode` en hoeven niet naar GitHub of Brightspace.
+
+De browser opent de lokale app via `localhost`. Laat de automatisch geopende terminal draaien. Pas de code aan in `app.py`, sla op met **Ctrl+S** en klik zo nodig op **Rerun** in de browser.
+
+Voor een nieuwe installatie op een andere computer zijn dit de commando's vanuit deze map:
 
 ```bash
 pip install -r requirements.txt
@@ -14,6 +18,36 @@ streamlit run app.py
 ```
 
 De meegeleverde `data/bronnen.zip` is voldoende. Het dashboard doet geen API-aanroepen en de kaart gebruikt lokale geometrie zonder externe kaarttegels. Houd het archief ingepakt.
+
+## Wat heb je nodig voor welk onderdeel
+
+De lokale eindopdrachtmap heeft drie onderdelen:
+
+| Map | Waarvoor gebruik je deze? |
+| --- | --- |
+| `dashboard` | De werkende app, code, data en je oefenmateriaal. Deze map is aan GitHub gekoppeld. |
+| `opdracht` | De oorspronkelijke uitleg van de docent, casusbeschrijving, rubric en oefenset. Deze blijven lokaal als naslag. |
+| `inleveren` | Het ZIP-bestand dat je op Brightspace inlevert. |
+
+| Bestand in dashboard | Waarvoor nodig? | In het Brightspace-pakket? |
+| --- | --- | --- |
+| `app.py` | Dashboard tonen en live code aanpassen tijdens het assessment. | Ja |
+| `data/bronnen.zip` | Lokale data voor het dashboard; niet uitpakken of verwijderen. | Ja |
+| `data_ophalen.py` | Laten zien hoe je de data hebt verzameld. Tijdens het assessment hoef je dit niet uit te voeren. | Ja |
+| `requirements.txt` | Vastleggen welke Python-pakketten nodig zijn om de app te installeren. | Ja |
+| `documentatie/data_verantwoording.md` | Uitleg over bronnen, ophalen, koppelen en ontbrekende gegevens. | Ja, in de ZIP heet dit `data_verantwoording.md`. |
+| `documentatie/Spreektekst_case_5_8_minuten.docx` | Je presentatie oefenen met tijdschema en klikroute. | Nee, voor jezelf |
+| `documentatie/Oefenen_live_coding_case_5.docx` | De 32 live-codingoefeningen met uitleg en antwoorden oefenen. | Nee, voor jezelf |
+| `README.md` | Dit overzicht en de gebruiksaanwijzing teruglezen. | Nee |
+| `.gitignore` | Tijdelijke bestanden en lokale instellingen buiten GitHub houden. | Nee, wel bewaren |
+| `.vscode/launch.json` | De klikbare startinstelling op jouw laptop gebruiken. | Nee, lokaal bewaren |
+| `.git` | De koppeling en versiegeschiedenis met GitHub bewaren. | Nee, lokaal bewaren |
+
+Voor Brightspace gebruik je **`inleveren/Case_5A_Hugo_Hilbelink.zip`** in de bovenliggende eindopdrachtmap. Het bevat alleen de vijf vereiste onderdelen. Je levert de spreektekst en oefeningen niet mee in. Als je code, data of data-verantwoording verandert, moet het inleverpakket opnieuw worden bijgewerkt.
+
+Voor de online versie blijven app, data, ophaalscript, verantwoording en requirements in GitHub staan. De online app start automatisch; je lokale VS Code-startinstelling is daarvoor niet nodig.
+
+In de grote schoolmap `Minor Data Science` staat ook `.venv`: dat is de Python-omgeving waarmee je lokale app draait. Laat die map en de `.vscode`-map van die hoofdmap staan.
 
 ## Bestanden
 
