@@ -1,5 +1,7 @@
 # CO2 en welvaart
 
+[Open het dashboard](https://minor-data-science-co2-welvaart.streamlit.app/)
+
 Individuele eindopdracht IDS 2026–2027 van Hugo Hilbelink. Casus 5, richting A: welke landen combineren economische groei met een absolute daling van CO2, en waar daalt alleen de uitstoot per eenheid bbp?
 
 ## Starten op je eigen laptop
