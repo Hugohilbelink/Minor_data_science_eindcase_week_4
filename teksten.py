@@ -88,7 +88,7 @@ REGRESSIE_TE_WEINIG = (
 )
 
 ASSEN = {
-    "bbp_groei": "Verandering re?el bbp (%)",
-    "co2_groei": "Verandering totale CO? (%)",
-    "intensiteit_groei": "Verandering CO? per eenheid bbp (%)",
+    "bbp_groei": "Verandering reëel bbp (%)",
+    "co2_groei": "Verandering totale CO₂ (%)",
+    "intensiteit_groei": "Verandering CO₂ per eenheid bbp (%)",
 }
