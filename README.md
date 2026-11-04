@@ -37,7 +37,7 @@ De lokale eindopdrachtmap heeft drie onderdelen:
 | `data_ophalen.py` | Laten zien hoe je de data hebt verzameld. Tijdens het assessment hoef je dit niet uit te voeren. | Ja |
 | `requirements.txt` | Vastleggen welke Python-pakketten nodig zijn om de app te installeren. | Ja |
 | `documentatie/data_verantwoording.md` | Uitleg over bronnen, ophalen, koppelen en ontbrekende gegevens. | Ja, in de ZIP heet dit `data_verantwoording.md`. |
-| `documentatie/Spreektekst_case_5_8_minuten.docx` | Je presentatie oefenen met tijdschema en klikroute. | Nee, voor jezelf |
+| `documentatie/Case 4 Word document spreektekst.docx` | Je presentatie oefenen met tijdschema en klikroute. | Nee, voor jezelf |
 | `documentatie/Oefenen_live_coding_case_5.docx` | De 32 live-codingoefeningen met uitleg en antwoorden oefenen. | Nee, voor jezelf |
 | `README.md` | Dit overzicht en de gebruiksaanwijzing teruglezen. | Nee |
 | `.gitignore` | Tijdelijke bestanden en lokale instellingen buiten GitHub houden. | Nee, wel bewaren |
@@ -58,7 +58,7 @@ In de grote schoolmap `Minor Data Science` staat ook `.venv`: dat is de Python-o
 - `data/bronnen.zip`: oorspronkelijke CO2-data en codeboek, Wereldbankdata en metadata, kaartvlakken en bronverantwoording met SHA256-controlesommen.
 - `documentatie/data_verantwoording.md`: korte verantwoording voor het inleveren.
 - `documentatie/Oefenen_live_coding_case_5.docx`: 32 aangepaste oefeningen, hints, oplossingen en presentatievoorbereiding.
-- `documentatie/Spreektekst_case_5_8_minuten.docx`: spreektekst in de ik-vorm met tijdschema, klikroute en aparte naslag voor vragen.
+- `documentatie/Case 4 Word document spreektekst.docx`: spreektekst in de ik-vorm met tijdschema, klikroute en aparte naslag voor vragen.
 - `requirements.txt`: benodigde Python-pakketten. Python 3.12 of 3.13 aanbevolen voor Streamlit Community Cloud.
 
 ## Data opnieuw ophalen
