@@ -52,6 +52,8 @@ In de grote schoolmap `Minor Data Science` staat ook `.venv`: dat is de Python-o
 
 ## Bestanden
 
+De spreektekst en live-codingoefeningen zijn lokale voorbereidingsdocumenten. Ze staan niet in GitHub en horen niet bij het inleverpakket.
+
 - `app.py`: het volledige dashboard met genummerde blokken, van inlezen en samenvoegen tot filters, grafieken en statistiek.
 - `teksten.py`: alleen vaste schermteksten, labels en opmaak. Alle berekeningen, filters en grafieklogica blijven in `app.py`.
 - `data_ophalen.py`: apart ophaalscript met requests en paginering; schrijft een lokale snapshot.
